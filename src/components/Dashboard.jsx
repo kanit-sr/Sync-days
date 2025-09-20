@@ -79,12 +79,10 @@ export default function Dashboard() {
         setJoinGroupId('');
         setShowJoinGroup(false);
         // The real-time listener will automatically update the groups list
-      } else {
-        alert('Group not found. Please check the group ID.');
       }
     } catch (error) {
       console.error('Error joining group:', error);
-      alert('Failed to join group. Please try again.');
+      alert(error.message || 'Failed to join group. Please try again.');
     }
     setLoading(false);
   };
@@ -208,9 +206,23 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-300 mb-3">
                   {group.members?.length || 0} member(s)
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-400 mb-2">
                   Created by {group.createdBy === currentUser.uid ? 'you' : 'another member'}
                 </p>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-400 select-all">Group ID: {group.id}</span>
+                  <button
+                    type="button"
+                    className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(group.id);
+                      alert('Group ID copied to clipboard!');
+                    }}
+                  >
+                    Copy
+                  </button>
+                </div>
               </div>
             </div>
           ))}
