@@ -9,12 +9,20 @@ export default function CalendarView({ group, onBack }) {
   const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
+    if (!group?.id) return;
     const unsubscribe = subscribeToGroupDays(group.id, (days) => {
       setDaysData(days);
     });
-    
     return unsubscribe;
-  }, [group.id]);
+  }, [group?.id]);
+
+  if (!group) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-300">
+        No group selected
+      </div>
+    );
+  }
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -32,87 +40,12 @@ export default function CalendarView({ group, onBack }) {
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
-    
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
-    }
-    
-    // Add all days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(new Date(year, month, day));
-    }
-    
+    for (let i = 0; i < startingDayOfWeek; i++) days.push(null);
+    for (let d = 1; d <= daysInMonth; d++) days.push(new Date(year, month, d));
     return days;
   };
 
-  const formatDateKey = (date) => {
-    return date.toISOString().split('T')[0];
-  };
-
-  const getDayStatus = (date) => {
-    const dateKey = formatDateKey(date);
-    const dayData = daysData[dateKey];
-    
-    if (!dayData) return 'unknown';
-    
-    // For demo purposes, we'll show the current user's status
-    // In a real app, you'd want to show statuses for all group members
-    const userStatuses = Object.entries(dayData)
-      .filter(([key, item]) => {
-        // Skip non-user fields like lastUpdated
-        if (key === 'lastUpdated') return false;
-        // Ensure item is a valid object with a status
-        return typeof item === 'object' && item !== null && typeof item.status === 'string';
-      })
-      .map(([_, item]) => item.status);
-    
-    if (userStatuses.length === 0) return 'unknown';
-    
-    // Return the most common status or a summary
-    const freeCount = userStatuses.filter(s => s === 'free').length;
-    const busyCount = userStatuses.filter(s => s === 'busy').length;
-    
-    console.debug('getDayStatus:', {
-      dateKey,
-      userStatuses,
-      freeCount,
-      busyCount
-    });
-    
-    if (freeCount > busyCount) return 'free';
-    if (busyCount > freeCount) return 'busy';
-    return 'mixed';
-  };
-
-  const getAppointmentsForDay = (date) => {
-    const dateKey = formatDateKey(date);
-    const dayData = daysData[dateKey];
-    
-    if (!dayData) return [];
-    
-    const appointments = [];
-    Object.entries(dayData).forEach(([userId, item]) => {
-      // Skip lastUpdated and other non-user fields
-      if (userId === 'lastUpdated') return;
-      
-      // Ensure item is an object with appointments array
-      if (typeof item === 'object' && item !== null && Array.isArray(item.appointments)) {
-        appointments.push(...item.appointments);
-      } else if (typeof item === 'object' && item !== null && item.appointments) {
-        // Handle case where appointments might be a single object
-        appointments.push(item.appointments);
-      }
-    });
-    
-    console.debug('getAppointmentsForDay:', {
-      dateKey,
-      dayData,
-      appointments
-    });
-    
-    return appointments;
-  };
+  const formatDateKey = (date) => date.toISOString().split('T')[0];
 
   const navigateMonth = (direction) => {
     setCurrentDate(prev => {
@@ -122,10 +55,7 @@ export default function CalendarView({ group, onBack }) {
     });
   };
 
-  const isToday = (date) => {
-    const today = new Date();
-    return date.toDateString() === today.toDateString();
-  };
+  const isToday = (date) => date?.toDateString() === new Date().toDateString();
 
   const days = getDaysInMonth(currentDate);
 
@@ -166,6 +96,41 @@ export default function CalendarView({ group, onBack }) {
         </div>
       </header>
 
+      {/* Today Status Box */}
+      <div className="max-w-3xl mx-auto p-4 mb-6 glass-card rounded-xl shadow-lg">
+        <h2 className="text-white font-semibold text-lg mb-2">
+          Today: {new Date().toDateString()}
+        </h2>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {(group.members || []).map((memberId, idx) => {
+            const memberName = group?.memberNames?.[memberId] || `M${idx + 1}`;
+            const memberData = daysData[formatDateKey(new Date())]?.[memberId] || {};
+            const status = memberData?.status || 'unknown';
+            const appointments = memberData?.appointments || [];
+
+            const statusColor =
+              status === 'free' ? 'bg-green-500' :
+              status === 'busy' ? 'bg-red-500' :
+              'bg-gray-400';
+
+            return (
+              <div key={memberId} className="flex items-center justify-between p-2 bg-white/5 rounded-md">
+                <span className="text-white font-medium truncate max-w-[70px]">{memberName}</span>
+                <div className="flex items-center space-x-2">
+                  <div className={`w-3 h-3 rounded-full ${statusColor}`} title={status}></div>
+                  {appointments.length > 0 && (
+                    <span className="text-xs text-gray-300">
+                      {appointments.length} appt{appointments.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Calendar */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="glass-card rounded-2xl shadow-2xl overflow-hidden">
@@ -177,45 +142,43 @@ export default function CalendarView({ group, onBack }) {
               </div>
             ))}
           </div>
-          
+
           {/* Calendar grid */}
           <div className="grid grid-cols-7">
-            {days.map((day, index) => {
-              if (!day) {
-                return <div key={index} className="h-24 border-r border-b border-white/10"></div>;
-              }
-              
-              const status = getDayStatus(day);
-              const appointments = getAppointmentsForDay(day);
+            {days.map((day, idx) => {
+              if (!day) return <div key={idx} className="h-24 border-r border-b border-white/10"></div>;
+
               const isSelected = selectedDate && selectedDate.toDateString() === day.toDateString();
-              
+              const dayData = daysData[formatDateKey(day)] || {};
+
+              // Determine highlight color
+              const statuses = Object.values(dayData).map(d => d?.status).filter(Boolean);
+              let dayHighlight = '';
+              if (statuses.length > 0) {
+                const allFree = statuses.every(s => s === 'free');
+                const allBusy = statuses.every(s => s === 'busy');
+                if (allFree) dayHighlight = 'bg-green-500/10';
+                else if (allBusy) dayHighlight = 'bg-red-500/10';
+                else dayHighlight = 'bg-yellow-500/10'; // contrast/mixed
+              }
+
               return (
                 <div
                   key={day.toISOString()}
                   className={`h-24 border-r border-b border-white/10 cursor-pointer calendar-day ${
-                    isSelected ? 'bg-blue-500/20' : 'hover:bg-white/5'
+                    isSelected ? 'bg-blue-500/20' : isToday(day) ? 'bg-blue-500/10' : dayHighlight ? dayHighlight : 'hover:bg-white/5'
                   }`}
                   onClick={() => setSelectedDate(day)}
                 >
-                  <div className="p-2 h-full flex flex-col">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-sm font-medium ${
-                        isToday(day) ? 'text-blue-400 font-bold' : 'text-white'
-                      }`}>
-                        {day.getDate()}
-                      </span>
-                      <div className={`w-3 h-3 rounded-full ${
-                        status === 'free' ? 'bg-green-500' :
-                        status === 'busy' ? 'bg-red-500' :
-                        status === 'mixed' ? 'bg-yellow-500' :
-                        'bg-gray-500'
-                      }`}></div>
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      {appointments.length > 0 && (
-                        <div className="text-xs text-gray-400">
-                          {appointments.length} appointment{appointments.length !== 1 ? 's' : ''}
-                        </div>
+                  <div className="p-2">
+                    <div className="text-gray-300 font-medium">{day.getDate()}</div>
+                    <div className="mt-1">
+                      {Object.entries(dayData).map(([memberId, data]) =>
+                        (data?.appointments || []).map((apt, i) => (
+                          <div key={`${memberId}-${i}`} className="text-xs text-gray-400 truncate">
+                            {apt?.title || 'Appointment'}
+                          </div>
+                        ))
                       )}
                     </div>
                   </div>
@@ -231,7 +194,9 @@ export default function CalendarView({ group, onBack }) {
         <DayCard
           date={selectedDate}
           group={group}
-          appointments={getAppointmentsForDay(selectedDate) || []}
+          appointments={Object.values(daysData[formatDateKey(selectedDate)] || {})
+            .flatMap(item => item?.appointments || [])}
+          dayData={daysData[formatDateKey(selectedDate)] || {}}
           onClose={() => setSelectedDate(null)}
         />
       )}

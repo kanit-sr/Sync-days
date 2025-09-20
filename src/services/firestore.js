@@ -1,3 +1,19 @@
+// ---------------------
+// Set Member Name
+// ---------------------
+/**
+ * Set or update the display name for a user in a group.
+ * @param {string} groupId - The group document ID
+ * @param {string} userId - The user's UID
+ * @param {string} name - The new display name
+ */
+export async function setMemberName(groupId, userId, name) {
+  const groupDoc = doc(db, 'groups', groupId);
+  // Store member names in a map: memberNames: { [userId]: name }
+  await updateDoc(groupDoc, {
+    [`memberNames.${userId}`]: name
+  });
+}
 import { 
   collection, doc, addDoc, getDoc, getDocs, updateDoc, setDoc, deleteDoc,
   query, where, onSnapshot, serverTimestamp, orderBy, arrayUnion, Timestamp
