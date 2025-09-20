@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, Calendar, LogOut, X } from 'lucide-react';
+import { Plus, Users, Calendar, LogOut, X, Info } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserGroups, createGroup, joinGroup, subscribeToUserGroups, deleteGroup } from '../services/firestore';
+import { subscribeToUserGroups, createGroup, joinGroup, deleteGroup } from '../services/firestore';
 import CalendarView from './CalendarView';
 
 export default function Dashboard() {
@@ -10,60 +10,39 @@ export default function Dashboard() {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showJoinGroup, setShowJoinGroup] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
   const [newGroupName, setNewGroupName] = useState('');
   const [joinGroupId, setJoinGroupId] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
-      const unsubscribe = subscribeToUserGroups(currentUser.uid, (userGroups) => {
-        setGroups(userGroups);
-      });
-      
+      const unsubscribe = subscribeToUserGroups(currentUser.uid, setGroups);
       return unsubscribe;
     }
   }, [currentUser]);
 
+  useEffect(() => {
+    const seen = localStorage.getItem('seenInstructions');
+    if (seen) setShowInstructions(false);
+  }, []);
+
+  const closeInstructions = () => {
+    localStorage.setItem('seenInstructions', 'true');
+    setShowInstructions(false);
+  };
+
   const handleCreateGroup = async (e) => {
     e.preventDefault();
     if (!newGroupName.trim()) return;
-    
     setLoading(true);
     try {
-      console.log('Creating group:', { name: newGroupName.trim(), userId: currentUser.uid });
-      
-      // Check if user is authenticated
-      if (!currentUser || !currentUser.uid) {
-        throw new Error('User not authenticated');
-      }
-      
-      const groupId = await createGroup(newGroupName.trim(), currentUser.uid);
-      console.log('Group created successfully:', groupId);
-      
+      if (!currentUser?.uid) throw new Error('User not authenticated');
+      await createGroup(newGroupName.trim(), currentUser.uid);
       setNewGroupName('');
       setShowCreateGroup(false);
-      // The real-time listener will automatically update the groups list
     } catch (error) {
-      console.error('Error creating group:', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      });
-      
-      let errorMessage = 'Failed to create group. ';
-      
-      if (error.code === 'permission-denied') {
-        errorMessage += 'Permission denied. Please check your Firebase security rules.';
-      } else if (error.code === 'unavailable') {
-        errorMessage += 'Firebase service is unavailable. Please check your connection.';
-      } else if (error.message.includes('not authenticated')) {
-        errorMessage += 'Please sign in again.';
-      } else {
-        errorMessage += `Error: ${error.message}`;
-      }
-      
-      alert(errorMessage);
+      alert(`Failed to create group: ${error.message}`);
     }
     setLoading(false);
   };
@@ -71,18 +50,15 @@ export default function Dashboard() {
   const handleJoinGroup = async (e) => {
     e.preventDefault();
     if (!joinGroupId.trim()) return;
-    
     setLoading(true);
     try {
       const success = await joinGroup(joinGroupId.trim(), currentUser.uid);
       if (success) {
         setJoinGroupId('');
         setShowJoinGroup(false);
-        // The real-time listener will automatically update the groups list
       }
     } catch (error) {
-      console.error('Error joining group:', error);
-      alert(error.message || 'Failed to join group. Please try again.');
+      alert(error.message || 'Failed to join group');
     }
     setLoading(false);
   };
@@ -91,189 +67,189 @@ export default function Dashboard() {
     try {
       await logout();
     } catch (error) {
-      console.error('Failed to log out:', error);
+      console.error(error);
     }
   };
 
   const handleDeleteGroup = async (groupId, e) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
-      return;
-    }
-
+    if (!window.confirm('Are you sure you want to delete this group?')) return;
     try {
       await deleteGroup(groupId, currentUser.uid);
-      // No need to update state, the real-time listener will handle it
     } catch (error) {
-      console.error('Error deleting group:', error);
       alert(error.message);
     }
   };
 
-  if (selectedGroup) {
-    return (
-      <CalendarView 
-        group={selectedGroup} 
-        onBack={() => setSelectedGroup(null)} 
-      />
-    );
-  }
+  if (selectedGroup) return <CalendarView group={selectedGroup} onBack={() => setSelectedGroup(null)} />;
 
   return (
-    <div className="min-h-screen dark-gradient-bg">
+    <div className="min-h-screen bg-gray-950 relative text-gray-200">
       {/* Header */}
-      <header className="glass-card border-b border-white/10 sticky top-0 z-50 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mr-3">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                SyncDays
-              </h1>
+      <header className="glass-card backdrop-blur-xl shadow-lg border-b border-white/10 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-12 h-12 bg-gray-900 rounded-xl shadow-lg">
+              <Calendar className="w-6 h-6 text-white" />
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-300">
-                Welcome, {currentUser.displayName || currentUser.email}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="flex items-center px-4 py-2 text-sm text-gray-300 hover:text-white glass-card rounded-lg transition-all duration-300 hover:bg-white/20"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </button>
-            </div>
+            <h1 className="text-3xl font-bold text-white">
+              SyncDays
+            </h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-300">
+              Welcome, {currentUser.displayName || currentUser.email}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg hover:bg-white/20 transition duration-300"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
           </div>
         </div>
       </header>
 
+      {/* Pop-up Instructions */}
+      {showInstructions && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="glass-card p-6 rounded-3xl shadow-2xl max-w-lg relative">
+            <button
+              onClick={closeInstructions}
+              className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-white">
+              <Info className="w-5 h-5" /> Welcome / คู่มือสำหรับผู้เริ่มต้น
+            </h2>
+            <ul className="list-disc list-inside space-y-2 text-gray-300 text-sm">
+              <li>🟢 Free / ว่าง = You can meet this person / คุณสามารถนัดสมาชิกนี้ได้</li>
+              <li>🔴 Busy / ไม่ว่าง = This person is busy / สมาชิกนี้ไม่ว่าง</li>
+              <li>🟡 Mixed / ผสม = Some members are free, some are busy / สมาชิกบางคนว่าง บางคนไม่ว่าง</li>
+              <li>Click on a group to open its calendar / คลิกที่กลุ่มเพื่อดูปฏิทิน</li>
+              <li>Hover over a day to see events / เลื่อนเมาส์บนวันเพื่อดูนัดหมาย</li>
+              <li>Click on a day to see details / คลิกที่วันเพื่อดูรายละเอียด</li>
+              <li>Use the buttons above to create or join a group / ใช้ปุ่มด้านบนเพื่อสร้างหรือเข้าร่วมกลุ่ม</li>
+            </ul>
+            <button
+              onClick={closeInstructions}
+              className="mt-6 w-full py-3 rounded-xl bg-blue-700 hover:bg-blue-800 transition"
+            >
+              Got it / เข้าใจแล้ว
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Persistent Intro Box */}
+      <div className="max-w-3xl mx-auto p-5 mb-6 bg-gray-800/60 backdrop-blur-md rounded-2xl shadow-lg">
+        <h2 className="text-xl font-semibold mb-3">How to Use SyncDays / วิธีใช้ SyncDays</h2>
+        <ul className="list-disc list-inside space-y-2 text-gray-300 text-sm">
+          <li>🟢 Green = Member is <span className="text-green-400 font-medium">free</span> / สมาชิกว่าง</li>
+          <li>🔴 Red = Member is <span className="text-red-400 font-medium">busy</span> / สมาชิกไม่ว่าง</li>
+          <li>🟡 Yellow = Mixed statuses (some free, some busy) / บางคนว่าง บางคนไม่ว่าง</li>
+          <li>Click a group to open its calendar / คลิกที่กลุ่มเพื่อเปิดปฏิทิน</li>
+          <li>Hover over a day to see events / เลื่อนเมาส์บนวันเพื่อดูนัดหมาย</li>
+          <li>Click a day to see details / คลิกที่วันเพื่อดูรายละเอียด</li>
+          <li>Use the buttons above to create or join a group / ใช้ปุ่มด้านบนเพื่อสร้างหรือเข้าร่วมกลุ่ม</li>
+        </ul>
+      </div>
+
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">Your Groups</h2>
-          
-          {/* Action Buttons */}
-          <div className="flex space-x-4 mb-6">
+  <main className="max-w-7xl mx-auto px-6 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold">Your Groups / กลุ่มของคุณ</h2>
+          <div className="flex gap-3">
             <button
               onClick={() => setShowCreateGroup(true)}
-              className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-700 shadow-lg hover:scale-105 transform transition"
             >
-              <Plus className="w-5 h-5 mr-2" />
-              Create Group
+              <Plus className="w-5 h-5" /> Create / สร้าง
             </button>
             <button
               onClick={() => setShowJoinGroup(true)}
-              className="flex items-center px-6 py-3 glass-card text-white rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 hover:bg-white/20"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gray-700/60 backdrop-blur-md shadow-lg hover:scale-105 transform transition"
             >
-              <Users className="w-5 h-5 mr-2" />
-              Join Group
+              <Users className="w-5 h-5" /> Join / เข้าร่วม
             </button>
           </div>
         </div>
 
-        {/* Groups List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Groups Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {groups.map((group) => (
             <div
               key={group.id}
-              className="glass-card rounded-2xl shadow-xl p-6 glass-card-hover transform hover:scale-105 transition-all duration-300"
+              onClick={() => setSelectedGroup(group)}
+              className="bg-gray-900/80 backdrop-blur-md p-6 rounded-2xl shadow-xl cursor-pointer hover:scale-105 transform transition border border-white/10 group-card"
             >
-              <div className="flex items-center mb-3">
-                <div 
-                  className="flex-1 flex items-center cursor-pointer"
-                  onClick={() => setSelectedGroup(group)}
-                >
-                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl mr-3">
-                    <Calendar className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white">{group.name}</h3>
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-400" />
+                  <h3 className="font-semibold text-lg text-white">{group.name}</h3>
                 </div>
-                {group.createdBy === currentUser.uid && (
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={(e) => handleDeleteGroup(group.id, e)}
-                    className="p-2 hover:bg-red-500/20 rounded-lg transition-colors duration-200"
-                  >
-                    <X className="w-5 h-5 text-red-400" />
-                  </button>
-                )}
-              </div>
-              <div 
-                className="cursor-pointer"
-                onClick={() => setSelectedGroup(group)}
-              >
-                <p className="text-sm text-gray-300 mb-3">
-                  {group.members?.length || 0} member(s)
-                </p>
-                <p className="text-xs text-gray-400 mb-2">
-                  Created by {group.createdBy === currentUser.uid ? 'you' : 'another member'}
-                </p>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-400 select-all">Group ID: {group.id}</span>
-                  <button
-                    type="button"
-                    className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-all duration-200"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigator.clipboard.writeText(group.id);
-                      alert('Group ID copied to clipboard!');
                     }}
+                    title="Copy Group ID"
+                    className="p-2 bg-blue-700/20 hover:bg-blue-700/40 rounded-lg transition text-blue-300"
                   >
-                    Copy
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" strokeWidth="2" stroke="currentColor" fill="none"/><rect x="3" y="3" width="13" height="13" rx="2" strokeWidth="2" stroke="currentColor" fill="none"/></svg>
                   </button>
+                  {group.createdBy === currentUser.uid && (
+                    <button
+                      onClick={(e) => handleDeleteGroup(group.id, e)}
+                      className="p-2 hover:bg-red-500/30 rounded-lg transition"
+                    >
+                      <X className="w-5 h-5 text-red-400" />
+                    </button>
+                  )}
                 </div>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-gray-300 text-sm"><Users className="inline w-4 h-4 mr-1" /> {group.members?.length || 0} member(s) / สมาชิก</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Group ID: <span className="font-mono text-blue-300">{group.id}</span></span>
               </div>
             </div>
           ))}
         </div>
-
-        {groups.length === 0 && (
-          <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full mb-6">
-              <Calendar className="w-10 h-10 text-blue-400" />
-            </div>
-            <h3 className="text-lg font-medium text-white mb-2">No groups yet</h3>
-            <p className="text-gray-300 mb-4">
-              Create your first group or join an existing one to get started
-            </p>
-          </div>
-        )}
       </main>
 
       {/* Create Group Modal */}
       {showCreateGroup && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="glass-card rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 className="text-lg font-semibold text-white mb-4">Create New Group</h3>
+          <div className="bg-gray-900/80 backdrop-blur-xl rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-semibold mb-4">Create New Group / สร้างกลุ่มใหม่</h3>
             <form onSubmit={handleCreateGroup}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Group Name
-                </label>
-                <input
-                  type="text"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  className="w-full px-4 py-3 glass-card border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-2 text-white placeholder-gray-400"
-                  placeholder="Enter group name"
-                  required
-                />
-              </div>
-              <div className="flex space-x-3">
+              <input
+                type="text"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                className="w-full mb-4 px-4 py-3 rounded-xl bg-gray-800/50 placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:outline-none text-white"
+                placeholder="Enter group name / ใส่ชื่อกลุ่ม"
+                required
+              />
+              <div className="flex gap-3">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-4 rounded-xl disabled:opacity-50 transition-all duration-300"
+                  className="flex-1 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 transition"
                 >
-                  {loading ? 'Creating...' : 'Create Group'}
+                  {loading ? 'Creating...' : 'Create Group / สร้าง'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowCreateGroup(false)}
-                  className="flex-1 glass-card text-white py-3 px-4 rounded-xl hover:bg-white/20 transition-all duration-300"
+                  className="flex-1 py-3 rounded-xl bg-gray-700/50 hover:bg-gray-700/70 transition"
                 >
-                  Cancel
+                  Cancel / ยกเลิก
                 </button>
               </div>
             </form>
@@ -284,39 +260,32 @@ export default function Dashboard() {
       {/* Join Group Modal */}
       {showJoinGroup && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="glass-card rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 className="text-lg font-semibold text-white mb-4">Join Existing Group</h3>
+          <div className="bg-gray-900/80 backdrop-blur-xl rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-semibold mb-4">Join Existing Group / เข้าร่วมกลุ่ม</h3>
             <form onSubmit={handleJoinGroup}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Group ID
-                </label>
-                <input
-                  type="text"
-                  value={joinGroupId}
-                  onChange={(e) => setJoinGroupId(e.target.value)}
-                  className="w-full px-4 py-3 glass-card border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-2 text-white placeholder-gray-400"
-                  placeholder="Enter group ID"
-                  required
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Ask a group member for the group ID
-                </p>
-              </div>
-              <div className="flex space-x-3">
+              <input
+                type="text"
+                value={joinGroupId}
+                onChange={(e) => setJoinGroupId(e.target.value)}
+                className="w-full mb-4 px-4 py-3 rounded-xl bg-gray-800/50 placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:outline-none text-white"
+                placeholder="Enter group ID / ใส่รหัสกลุ่ม"
+                required
+              />
+              <p className="text-xs text-gray-400 mb-4">Ask a member for the group ID / ถามสมาชิกในกลุ่มสำหรับรหัส</p>
+              <div className="flex gap-3">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-4 rounded-xl disabled:opacity-50 transition-all duration-300"
+                  className="flex-1 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 transition"
                 >
-                  {loading ? 'Joining...' : 'Join Group'}
+                  {loading ? 'Joining...' : 'Join Group / เข้าร่วม'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowJoinGroup(false)}
-                  className="flex-1 glass-card text-white py-3 px-4 rounded-xl hover:bg-white/20 transition-all duration-300"
+                  className="flex-1 py-3 rounded-xl bg-gray-700/50 hover:bg-gray-700/70 transition"
                 >
-                  Cancel
+                  Cancel / ยกเลิก
                 </button>
               </div>
             </form>

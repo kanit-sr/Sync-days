@@ -60,7 +60,7 @@ export default function CalendarView({ group, onBack }) {
   const days = getDaysInMonth(currentDate);
 
   return (
-    <div className="min-h-screen dark-gradient-bg">
+    <div className="min-h-screen bg-gray-950">
       {/* Header */}
       <header className="glass-card border-b border-white/10 sticky top-0 z-50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
