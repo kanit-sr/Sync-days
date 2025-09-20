@@ -128,27 +128,63 @@ firebase deploy
 4. **Add Appointments**: Add appointment details to any day
 5. **View Group**: See real-time updates from other group members
 
-## Security Rules
 
-For Firestore, use these security rules:
+## Firestore Security Rules (2025)
+
+Use these rules for robust group and appointment management:
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // =========================
     // Groups collection
+    // =========================
     match /groups/{groupId} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid in resource.data.members;
-      
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.createdBy;
-    }
-    
-    // Days subcollection
-    match /groups/{groupId}/days/{date} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+
+      // Create: Only authenticated user can create a group; must include themselves
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.createdBy
+                    && request.resource.data.members.hasAll([request.auth.uid]);
+
+      // Read: Only group members can read group info
+      allow read: if request.auth != null
+                  && request.auth.uid in resource.data.members;
+
+      // Update: Members can update non-membership fields or join themselves
+      allow update: if request.auth != null
+                    && (
+                      // Already a member
+                      request.auth.uid in resource.data.members ||
+                      // Joining safely
+                      request.resource.data.members.hasAll(resource.data.members) &&
+                      request.resource.data.members.hasAny([request.auth.uid])
+                    );
+
+      // Delete: Only creator can delete the group
+      allow delete: if request.auth != null
+                    && request.auth.uid == resource.data.createdBy;
+
+      // =========================
+      // Days subcollection
+      // =========================
+      match /days/{date} {
+
+        // Only group members can read/write
+        allow read, write: if request.auth != null
+                          && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+
+        // Update: Users can only modify their own status or appointments
+        allow update: if request.auth != null
+                      && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members
+                      && (
+                        // Update own status
+                        request.resource.data[request.auth.uid].status in ["free","busy","unknown"] ||
+                        // Or update appointments array
+                        (request.resource.data[request.auth.uid].appointments is list)
+                      );
+      }
     }
   }
 }
