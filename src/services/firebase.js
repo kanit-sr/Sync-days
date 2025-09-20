@@ -5,13 +5,7 @@ import { getAnalytics } from 'firebase/analytics';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyA8wAwfKOJO8-JVRUCQf_AXrJ-Lwi5A4GA",
-  authDomain: "sync-days.firebaseapp.com",
-  projectId: "sync-days",
-  storageBucket: "sync-days.appspot.com",
-  messagingSenderId: "911851358149",
-  appId: "1:911851358149:web:4369264f663417c1102dac",
-  measurementId: "G-KEEXJ7PGJ1"
+  //your firebase config//
 };
 
 // Initialize Firebase
