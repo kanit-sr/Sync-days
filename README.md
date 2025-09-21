@@ -2,6 +2,8 @@
 
 SyncDays is a calendar-based app that helps multiple users track each other's availability and schedule appointments.
 
+# https://sync-days.web.app/
+
 ## Features
 
 - **User Authentication**: Sign in with Google via Firebase Auth
