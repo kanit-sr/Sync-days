@@ -1,37 +1,25 @@
 # Project Guidelines
 
 ## Overview
-Calendar Booking Website for Dungeons & Dragons Campaigns.
-Players and Dungeon Masters can create/join campaigns and book session dates.
-Stack: Next.js 14 (App Router) · Tailwind CSS · Prisma · PostgreSQL (Supabase) · NextAuth.js · Vercel.
+<!-- Briefly describe what this project/workspace is for -->
+
+## Code Style
+<!-- Language, formatting preferences, and linting rules -->
+<!-- Example: TypeScript strict mode; Prettier with 2-space indent; ESLint airbnb -->
 
 ## Architecture
-- `src/app/` — Next.js App Router pages and layouts
-- `src/app/api/` — API Routes (backend logic via Next.js route handlers)
-- `src/components/` — Shared React components
-- `src/lib/` — Prisma client singleton, NextAuth config, utility helpers
-- `prisma/` — Schema (`schema.prisma`) and migrations
-
-**Core entities:** `User`, `Campaign`, `Booking`, `Date`
-- A `User` can be a Player or Dungeon Master
-- A `Campaign` is owned by a DM (`User`)
-- A `Booking` links a `User` + `Campaign` + `Date` with status `pending | confirmed | cancelled`
-- A `Date` stores `starts_at`, `ends_at`, `timezone`, and `is_recurring`
+<!-- Major components, service boundaries, and structural decisions -->
+<!-- Example: frontend/ contains React SPA; backend/ is Express REST API -->
 
 ## Build and Test
+<!-- Commands agents should run to build, test, and verify changes -->
+<!-- Example:
 - Install: `npm install`
-- Dev server: `npm run dev`
 - Build: `npm run build`
-- DB push (dev): `npx prisma db push`
-- DB migrate (prod): `npx prisma migrate deploy`
-- Prisma Studio: `npx prisma studio`
+- Test: `npm test`
 - Lint: `npm run lint`
+-->
 
 ## Conventions
-- Use **server components** by default; add `"use client"` only when needed (event handlers, hooks)
-- API routes live in `src/app/api/[resource]/route.ts` — one file per HTTP method group
-- Prisma client imported from `src/lib/prisma.ts` (singleton pattern to avoid hot-reload leaks)
-- Auth session accessed via `getServerSession(authOptions)` in server components/routes
-- Booking status typed as Prisma enum `BookingStatus` — never use raw strings
-- Environment variables: `.env.local` for dev, Vercel dashboard for prod (see `.env.example`)
-- Supabase connection string uses `?pgbouncer=true&connection_limit=1` for serverless compatibility
+<!-- Project-specific patterns that differ from common practices -->
+<!-- Example: Use `src/utils/` for shared helpers; feature flags live in config/flags.ts -->
