@@ -1,3 +1,8 @@
+# D&D Campaign Booking
+
+## Project Structure
+
+```
 dnd-booking/
 ├── .env.local                        # DB URL, NextAuth secret, Supabase keys
 ├── .env.example
@@ -7,7 +12,7 @@ dnd-booking/
 ├── tsconfig.json
 ├── package.json
 │
-├── prisma/                           # DB schema & migrations
+├── prisma/
 │   ├── schema.prisma                 # User, Campaign, Booking, Date models
 │   └── migrations/
 │
@@ -16,67 +21,55 @@ dnd-booking/
 │
 └── src/
     ├── app/                          # Next.js 14 App Router
-    │   ├── layout.tsx                # Root layout (font, providers)
+    │   ├── layout.tsx
     │   ├── page.tsx                  # Landing page
-    │   │
     │   ├── (auth)/
     │   │   ├── login/page.tsx
     │   │   └── register/page.tsx
-    │   │
-    │   ├── dashboard/
-    │   │   └── page.tsx              # Player dashboard (upcoming sessions)
-    │   │
+    │   ├── dashboard/page.tsx        # Player dashboard
     │   ├── campaigns/
-    │   │   ├── page.tsx              # Browse all campaigns
-    │   │   ├── [id]/page.tsx         # Campaign detail + booking CTA
+    │   │   ├── page.tsx              # Browse campaigns
+    │   │   ├── [id]/page.tsx         # Campaign detail + booking
     │   │   └── new/page.tsx          # DM: create campaign
-    │   │
     │   ├── bookings/
-    │   │   ├── page.tsx              # My bookings list
+    │   │   ├── page.tsx              # My bookings
     │   │   └── [id]/page.tsx         # Booking detail / cancel
-    │   │
     │   └── dm/
     │       ├── page.tsx              # DM dashboard
-    │       ├── campaigns/page.tsx    # Manage campaigns
-    │       └── sessions/page.tsx     # Manage dates / confirm bookings
+    │       ├── campaigns/page.tsx
+    │       └── sessions/page.tsx
     │
-    ├── api/                          # Next.js API Routes (App Router)
-    │   ├── auth/
-    │   │   └── [...nextauth]/route.ts
-    │   │
-    │   ├── campaigns/
-    │   │   ├── route.ts              # GET /list, POST /create
-    │   │   └── [id]/route.ts         # GET, PATCH, DELETE
-    │   │
-    │   ├── bookings/
-    │   │   ├── route.ts              # POST /create
-    │   │   └── [id]/route.ts         # GET, PATCH (status), DELETE
-    │   │
-    │   └── dates/
-    │       ├── route.ts              # POST /create
-    │       └── [id]/route.ts         # GET, PATCH, DELETE
+    ├── app/api/                      # API Route handlers
+    │   ├── auth/[...nextauth]/route.ts
+    │   ├── campaigns/route.ts
+    │   ├── campaigns/[id]/route.ts
+    │   ├── bookings/route.ts
+    │   ├── bookings/[id]/route.ts
+    │   ├── dates/route.ts
+    │   └── dates/[id]/route.ts
     │
     ├── components/
-    │   ├── ui/                       # Reusable primitives (Button, Badge, Modal)
+    │   ├── ui/                       # Button, Badge, Modal
     │   ├── layout/                   # Navbar, Sidebar, Footer
-    │   ├── campaigns/                # CampaignCard, CampaignForm, DifficultyBadge
-    │   ├── bookings/                 # BookingCard, StatusBadge, BookingForm
-    │   ├── calendar/                 # CalendarGrid, SessionSlot, TimezonePicker
+    │   ├── campaigns/                # CampaignCard, DifficultyBadge
+    │   ├── bookings/                 # BookingCard, StatusBadge
+    │   ├── calendar/                 # CalendarGrid, SessionSlot
     │   └── auth/                     # LoginForm, UserMenu
     │
     ├── lib/
     │   ├── prisma.ts                 # Prisma client singleton
-    │   ├── auth.ts                   # NextAuth config (providers, callbacks)
-    │   ├── supabase.ts               # Supabase client (storage / realtime)
-    │   └── utils.ts                  # Date helpers, formatters
+    │   ├── auth.ts                   # NextAuth config
+    │   ├── supabase.ts               # Supabase client
+    │   └── utils.ts                  # Helpers & formatters
     │
     ├── hooks/
     │   ├── useBookings.ts
     │   ├── useCampaigns.ts
-    │   └── useSession.ts             # Auth session helper
+    │   └── useSession.ts
     │
     ├── types/
-    │   └── index.ts                  # User, Campaign, Booking, Date TS types
+    │   └── index.ts                  # Shared TypeScript types
     │
     └── styles/
-        └── globals.css               # Tailwind base imports
+        └── globals.css
+```
