@@ -29,32 +29,35 @@ enum BookingStatus {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  email         String     @unique
-  name          String?
-  image         String?
-  role          Role       @default(PLAYER)
-  characterName String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id             String     @id @default(cuid())
+  username       String     @unique
+  email          String     @unique
+  passwordHash   String
+  name           String?
+  image          String?
+  role           Role       @default(PLAYER)
+  characterName  String?
+  characterClass String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
-  bookings      Booking[]
-  campaigns     Campaign[] @relation("DungeonMaster")
+  bookings       Booking[]
+  campaigns      Campaign[] @relation("DungeonMaster")
 }
 
 model Campaign {
-  id          String     @id @default(cuid())
-  title       String
-  description String?
-  difficulty  Difficulty @default(MEDIUM)
-  maxPlayers  Int        @default(6)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id           String     @id @default(cuid())
+  campaignName String
+  description  String?
+  difficulty   Difficulty @default(MEDIUM)
+  maxPartySize Int        @default(6)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  dmId        String
-  dm          User       @relation("DungeonMaster", fields: [dmId], references: [id])
+  dmId         String
+  dm           User       @relation("DungeonMaster", fields: [dmId], references: [id])
 
-  bookings    Booking[]
+  bookings     Booking[]
 }
 
 model Date {
@@ -62,7 +65,9 @@ model Date {
   startsAt    DateTime
   endsAt      DateTime
   timezone    String    @default("UTC")
+  isAvailable Boolean   @default(true)
   isRecurring Boolean   @default(false)
+  location    String?
   createdAt   DateTime  @default(now())
 
   bookings    Booking[]
@@ -71,6 +76,7 @@ model Date {
 model Booking {
   id         String        @id @default(cuid())
   status     BookingStatus @default(pending)
+  notes      String?
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
