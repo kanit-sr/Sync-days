@@ -9,24 +9,24 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "14.x",
-    "react": "^18",
-    "react-dom": "^18",
-    "@prisma/client": "^5",
-    "next-auth": "^4",
     "@auth/prisma-adapter": "^1",
-    "@supabase/supabase-js": "^2"
+    "@prisma/client": "^5",
+    "@supabase/supabase-js": "^2.99.2",
+    "next": "14.x",
+    "next-auth": "^4",
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "prisma": "^5",
-    "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "tailwindcss": "^3",
     "autoprefixer": "^10",
-    "postcss": "^8",
     "eslint": "^8",
-    "eslint-config-next": "14.x"
+    "eslint-config-next": "14.x",
+    "postcss": "^8",
+    "prisma": "^5",
+    "tailwindcss": "^3",
+    "typescript": "^5"
   }
 }
